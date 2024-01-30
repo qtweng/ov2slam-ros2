@@ -79,6 +79,17 @@ Frame::Frame(const Frame &F)
     pcalib_rightcam_(F.pcalib_rightcam_), Frl_(F.Frl_), Fcv_(F.Fcv_), map_covkfs_(F.map_covkfs_), set_local_mapids_(F.set_local_mapids_)
 {}
 
+void Frame::updateConfig(const size_t ncellsize)
+{
+    ncellsize_ = ncellsize;
+    nbwcells_ = ceil((float)pcalib_leftcam_->img_w_ / ncellsize_);
+    nbhcells_ = ceil((float)pcalib_leftcam_->img_h_ / ncellsize_);
+    ngridcells_ = nbwcells_ * nbhcells_;
+    noccupcells_ = 0;
+
+    vgridkps_.resize(ngridcells_);
+}
+
 // Set the image time and id
 void Frame::updateFrame(const int id, const double time) 
 {

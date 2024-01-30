@@ -85,6 +85,8 @@ public:
     Frame(std::shared_ptr<CameraCalibration> pcalib_left, std::shared_ptr<CameraCalibration> pcalib_right, const size_t ncellsize);
     Frame(const Frame &F);
 
+    void updateConfig(const size_t ncellsize);
+
     void updateFrame(const int id, const double img_time);
 
     std::vector<Keypoint> getKeypoints() const;

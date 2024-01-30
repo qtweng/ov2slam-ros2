@@ -52,6 +52,8 @@ public:
 
     void run();
 
+    void updateConfig(const size_t nmaxdist, const double dmaxquality, const int nfast_th);
+
     bool getNewImage(cv::Mat &iml, cv::Mat &imr, double &time);
 
     void addNewStereoImages(const double time, cv::Mat &im0, cv::Mat &im1);

@@ -92,6 +92,15 @@ FeatureExtractor::FeatureExtractor(size_t nmaxpts, size_t nmaxdist, double dmaxq
     std::cout << "\n*********************************\n";
 }
 
+void FeatureExtractor::updateConfig(size_t nmaxpts, size_t nmaxdist, double dmaxquality, int nfast_th)
+{
+    nmaxpts_ = nmaxpts;
+    nmaxdist_ = nmaxdist;
+    nmindist_ = nmaxdist / 2.;
+    dmaxquality_ = dmaxquality;
+    dminquality_ = dmaxquality / 2.;
+    nfast_th_ = nfast_th;
+}
 
 /**
  * \brief Detect GFTT features (Harris corners with Shi-Tomasi method) using OpenCV.

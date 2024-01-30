@@ -51,6 +51,7 @@
 typedef std::shared_ptr<const sensor_msgs::msg::Image> ImageConstPtr;
 
 std::shared_ptr<rclcpp::Node> nh;
+std::shared_ptr<SlamManager> slam;
 
 class SensorsGrabber {
 
@@ -161,6 +162,31 @@ public:
     SlamManager *pslam_;
 };
 
+rcl_interfaces::msg::SetParametersResult parameterUpdateCallback(const std::vector<rclcpp::Parameter> &parameters)
+{
+    // This object will be returned and indicates whether the parameters were successfully set
+    rcl_interfaces::msg::SetParametersResult result;
+
+    for (const auto &parameter : parameters)
+    {
+        if (parameter.get_name() == "nmaxdist" && parameter.get_type() == rclcpp::ParameterType::PARAMETER_INTEGER)
+        {
+            slam->updateConfig(parameter.as_int(), nh->get_parameter("dmaxquality").as_double(), nh->get_parameter("nfast_th").as_int());
+        }
+        else if (parameter.get_name() == "dmaxquality" && parameter.get_type() == rclcpp::ParameterType::PARAMETER_DOUBLE)
+        {
+            slam->updateConfig(nh->get_parameter("nmaxdist").as_int(), parameter.as_double(), nh->get_parameter("nfast_th").as_int());
+        }
+        else if (parameter.get_name() == "nfast_th" && parameter.get_type() == rclcpp::ParameterType::PARAMETER_INTEGER)
+        {
+            slam->updateConfig(nh->get_parameter("nmaxdist").as_int(), nh->get_parameter("dmaxquality").as_double(), parameter.as_int());
+        }
+    }
+
+    // Indicate that the parameters were set successfully
+    result.successful = true;
+    return result;
+}
 
 int main(int argc, char** argv)
 {
@@ -202,13 +228,13 @@ int main(int argc, char** argv)
     prosviz.reset( new RosVisualizer(nh) );
 
     // Setting up the SLAM Manager
-    SlamManager slam(pparams, prosviz);
+    slam = std::make_shared<SlamManager>(pparams, prosviz);
 
     // Start the SLAM thread
-    std::thread slamthread(&SlamManager::run, &slam);
+    std::thread slamthread(&SlamManager::run, slam);
 
     // Create the Bag file reader & callback functions
-    SensorsGrabber sb(&slam);
+    SensorsGrabber sb(slam.get());
 
     // Create callbacks according to the topics set in the parameters file
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subleft = 
@@ -221,14 +247,27 @@ int main(int argc, char** argv)
     // Start a thread for providing new measurements to the SLAM
     std::thread sync_thread(&SensorsGrabber::sync_process, &sb);
 
+    // Read initial values from the YAML file
+    size_t initial_nmaxdist = static_cast<int>(fsSettings["nmaxdist"]);
+    double initial_dmaxquality = static_cast<double>(fsSettings["dmaxquality"]);
+    int initial_nfast_th = static_cast<int>(fsSettings["nfast_th"]);
+
+    // Declare parameters with initial values using rclcpp::ParameterValue
+    nh->declare_parameter("nmaxdist", rclcpp::ParameterValue(static_cast<int64_t>(initial_nmaxdist)));
+    nh->declare_parameter("dmaxquality", rclcpp::ParameterValue(initial_dmaxquality));
+    nh->declare_parameter("nfast_th", rclcpp::ParameterValue(initial_nfast_th));
+
+    // Setting up the parameter update callback
+    nh->add_on_set_parameters_callback(parameterUpdateCallback);
+
     // ROS Spin
     rclcpp::spin(nh);
 
     // Request Slam Manager thread to exit
-    slam.bexit_required_ = true;
+    slam->bexit_required_ = true;
 
     // Waiting end of SLAM Manager
-    while( slam.bis_on_ ) {
+    while( slam->bis_on_ ) {
         std::chrono::seconds dura(1);
         std::this_thread::sleep_for(dura);
     }

@@ -238,6 +238,16 @@ void SlamManager::run()
     bis_on_ = false;
 }
 
+void SlamManager::updateConfig(const size_t nmaxdist, const double dmaxquality, const int nfast_th)
+{
+    pcurframe_->updateConfig(nmaxdist);
+    float nbwcells = ceil((float)pcalib_model_left_->img_w_ / nmaxdist);
+    float nbhcells = ceil((float)pcalib_model_left_->img_h_ / nmaxdist);
+    size_t nmaxpts = nbwcells * nbhcells;
+    pfeatextract_->updateConfig(nmaxpts, nmaxdist, dmaxquality, nfast_th);
+    pvisualfrontend_->reset();
+}
+
 void SlamManager::addNewMonoImage(const double time, cv::Mat &im0)
 {
     if( pslamstate_->bdo_undist_ ) {
