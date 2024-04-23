@@ -137,7 +137,7 @@ public:
 
                 if ( !img0_buf.empty() )
                 {
-                    double time = (double)img0_buf.front()->header.stamp.sec;
+                    double time = (double)img0_buf.front()->header.stamp.sec + 1e-9*(double)img0_buf.front()->header.stamp.nanosec;
                     image0 = getGrayImageFromMsg(img0_buf.front());
                     img0_buf.pop();
 
